@@ -3,11 +3,22 @@
 
 {% if user.is_authenticated %}
 
-<p>Logged in, {{ user.username }}</p>
-<a href="/logout">Logout</a>
+<p>Logged in as {{ user.username }} <a href="/logout">Logout</a></p>
 
-{% else %}
+<a href="/create_note">Create New Note</a><br />
+<a href="/search_notes">Search Notes</a><br />
 
+<h2>Your Notes:</h2>
+
+{% if notes %}
+<ul>
+	{% for note in notes %}
+	<li>
+		<a href="/note/{{ note.id }}/">{{ note.content }}</a>
+	</li>
+	{% endfor %}
+</ul>
+{% endif %} {% else %}
 <p>Not logged in</p>
 <a href="/login">Login</a><br />
 <a href="/register">Register</a>

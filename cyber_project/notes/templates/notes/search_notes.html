@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<a href="/">To front page</a>
+<p>Logged in as {{ user.username }}</p>
+
+<h1>Search From Your Notes</h1>
+
+<form method="GET">
+	<input type="text" name="query" value="{{ query }}" />
+	<button type="submit">Search</button>
+</form>
+
+{% if notes %}
+<ul>
+	{% for note in notes %}
+	<li>
+		<a href="/note/{{ note.id }}/">{{ note.content }}</a> by {{ note.owner }}
+	</li>
+	{% endfor %}
+</ul>
+{% endif %}
