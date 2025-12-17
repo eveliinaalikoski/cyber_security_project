@@ -1,8 +1,7 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.db import connection
-from django.http import HttpResponseForbidden
 from .models import Note
 
 def index(request):
@@ -17,19 +16,31 @@ def register_view(request):
         username = request.POST.get("username")
         password = request.POST.get("password")
 
-        user = User(username=username, password=password)
-        user.save()
-        return redirect("login")
+        if username and password:
+            # A02 Cryptographic Failures
+            try:
+                user = User(username=username, password=password)
+                user.save()
+                return redirect("login")
+            except Exception as e: # A04 Insecure Design
+                return render(request,
+                              "notes/register.html",
+                              {"error": str(e)})
 
-        # A02 Cryptographic Failures fix
-        # try:
-        #     user = User.objects.create_user(
-        #         username=username,
-        #         password=password
-        #     )
-        #     return redirect("login")
-        # except:
-        #     print("REGISTER NOT SUCCESSFUL")
+            # A02 Cryptographic Failures Fix
+            # try:
+            #     user = User.objects.create_user(
+            #         username=username,
+            #         password=password
+            #     )
+            #     return redirect("login")
+            # except: # A04 Insecure Design Fix
+            #     return render(request,
+            #                   "notes/register.html",
+            #                   {"error": "Register unsuccessful, try again"})
+
+        else:
+            return render(request, "notes/register.html", {"error": "Username and password are required"})
             
     return render(request, "notes/register.html")
 
@@ -37,27 +48,38 @@ def login_view(request):
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
+        if username and password:
+            # A02 Cryptographic Failures
+            try:
+                user = User.objects.get(username=username)
+                if user.password == password:
+                    login(request, user)
+                    return redirect("/")
+                else:
+                    # A04 Insecure Design
+                    return render(request,
+                                  "notes/login.html",
+                                  {"error": f"Incorrect password for user {username}"})
+                
+            except Exception as e: # A04 Insecure Design
+                return render(request, "notes/login.html", {"error": str(e)})
 
-        try:
-            user = User.objects.get(username=username)
-            if user.password == password:
-                login(request, user)
-                return redirect("/")
-        except:
-            print("LOGIN NOT SUCCESSFUL")
-
-        # A02 Cryptographic Failures fix
-        # user = authenticate(request, 
-        #                     username=username, 
-        #                     password=password)
+            # A02 Cryptographic Failures Fix
+            # user = authenticate(request,
+            #                     username=username,
+            #                     password=password)
+            
+            # if user is not None:
+            #     login(request, user)
+            #     return redirect("/")
+            # else:
+            #     # A04 Insecure Design Fix
+            #     return render(request,
+            #                   "notes/login.html",
+            #                   {"error": "Login unsuccessful, try again"})
         
-        # if user is not None:
-        #     print("USER", user, user.username, user.password)
-
-        #     login(request, user)
-        #     return redirect("/")
-        # else:
-        #     print("LOGIN NOT SUCCESSFUL")
+        else:
+            return render(request, "notes/login.html", {"error": "Username and password are required"})
 
     return render(request, "notes/login.html")
 
