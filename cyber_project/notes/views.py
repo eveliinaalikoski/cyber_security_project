@@ -2,10 +2,10 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.db import connection
+from django.http import HttpResponseForbidden
 from .models import Note
 
 def index(request):
-    print("USER", request.user)
     notes = []
     if request.user.is_authenticated:
         notes = Note.objects.filter(owner=request.user)
@@ -16,18 +16,20 @@ def register_view(request):
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
-        print("USER", username, password)
 
-        try:
-            user = User.objects.create_user(
-                username=username,
-                password=password
-            )
-            print("USER", user)
-            return redirect("/login")
-        except:
-            print("Something went wrong")
-            return render(request, "notes/register.html")
+        user = User(username=username, password=password)
+        user.save()
+        return redirect("login")
+
+        # A02 Cryptographic Failures fix
+        # try:
+        #     user = User.objects.create_user(
+        #         username=username,
+        #         password=password
+        #     )
+        #     return redirect("login")
+        # except:
+        #     print("REGISTER NOT SUCCESSFUL")
             
     return render(request, "notes/register.html")
 
@@ -36,17 +38,26 @@ def login_view(request):
         username = request.POST.get("username")
         password = request.POST.get("password")
 
-        print("USER", username, password)
-        
-        user = authenticate(request, 
-                            username=username, 
-                            password=password)
-        print("UU", user)
+        try:
+            user = User.objects.get(username=username)
+            if user.password == password:
+                login(request, user)
+                return redirect("/")
+        except:
+            print("LOGIN NOT SUCCESSFUL")
 
-        if user is not None:
-            login(request, user)
-            return redirect("/")
-        print("ONGELMA")
+        # A02 Cryptographic Failures fix
+        # user = authenticate(request, 
+        #                     username=username, 
+        #                     password=password)
+        
+        # if user is not None:
+        #     print("USER", user, user.username, user.password)
+
+        #     login(request, user)
+        #     return redirect("/")
+        # else:
+        #     print("LOGIN NOT SUCCESSFUL")
 
     return render(request, "notes/login.html")
 
@@ -66,12 +77,17 @@ def create_note(request):
 
 def note_view(request, noteid):
     note = Note.objects.get(pk=noteid)
-
-    if request.user == note.owner:
-        return render(request, "notes/note.html", {"note": note})
+    return render(request, "notes/note.html", {"note": note})
     
-    print("RESTRICTED ACCESS")
-    return redirect("/")
+    # A01 Broken Access Control fix
+    # try:
+    #     note = Note.objects.get(pk=noteid, owner=request.user)
+    #     return render(request, "notes/note.html", {"note": note})
+    # except:
+    #     return redirect("error")
+
+def error_view(request):
+    return render(request, "notes/error.html", {"error": "Restricted Access"})
 
 def seach_notes(request):
     query = request.GET.get("query", "")
@@ -79,23 +95,23 @@ def seach_notes(request):
 
     if query and request.user.is_authenticated:
         cursor = connection.cursor()
-        
-        # A03 Injection
-        # sql = """SELECT n.id, n.content, u.username 
-        #         FROM notes_note n 
-        #         JOIN auth_user u ON n.owner_id = u.id 
-        #         WHERE n.owner_id='""" + str(request.user.id) + "' and n.content LIKE '%" + query + "%'"
 
-        # response = cursor.execute(sql).fetchall()
+        sql = """SELECT n.id, n.content, u.username 
+                FROM notes_note n 
+                JOIN auth_user u ON n.owner_id = u.id 
+                WHERE n.owner_id='""" + str(request.user.id) + "' and n.content LIKE '%" + query + "%'"
 
-        sql = """SELECT n.id, n.content, u.username
-                FROM notes_note n
-                JOIN auth_user u ON n.owner_id = u.id
-                WHERE n.owner_id = %(owner_id)s
-                AND n.content LIKE %(query)s"""
+        response = cursor.execute(sql).fetchall()
+
+        # A03 Injection fix
+        # sql = """SELECT n.id, n.content, u.username
+        #         FROM notes_note n
+        #         JOIN auth_user u ON n.owner_id = u.id
+        #         WHERE n.owner_id = %(owner_id)s
+        #         AND n.content LIKE %(query)s"""
         
-        response = cursor.execute(sql, {"owner_id": request.user.id, 
-                                        "query": f"%{query}%"}).fetchall()
+        # response = cursor.execute(sql, {"owner_id": request.user.id, 
+        #                                 "query": f"%{query}%"}).fetchall()
 
         for r in response:
             print("RESPONSE", r)

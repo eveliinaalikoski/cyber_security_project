@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<a href="/">To front page</a><br />
+
+<h1>An error occured</h1>
+
+{% if error %}
+	<p class="error">{{ error }}</p>
+{% endif %}
+
+<style>
+	.error {
+        padding: 20px;
+		color: white;
+        background-color: red;
+		border: 1px solid darkred;
+        margin-bottom: 15px;
+	}
+</style>
