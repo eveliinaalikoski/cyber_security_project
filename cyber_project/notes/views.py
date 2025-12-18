@@ -48,8 +48,18 @@ def login_view(request):
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
+
+        # A07 Indentification and Authentication Failures Fix
+        # login_attempts = request.session.get("login_attempts", 0)
+        # print("LOGIN", login_attempts)
+
+        # if login_attempts >= 5:
+        #     return render(request,
+        #                   "notes/login.html",
+        #                   {"error": "Too many login attempts, try again later"})
+
         if username and password:
-            # A02 Cryptographic Failures
+            # A02 Cryptographic Failures & A07 Indentification and Authentication Failures
             try:
                 user = User.objects.get(username=username)
                 if user.password == password:
@@ -68,11 +78,13 @@ def login_view(request):
             # user = authenticate(request,
             #                     username=username,
             #                     password=password)
-            
+
             # if user is not None:
+            #     request.session["login_attempts"] = 0 # A07 Indentification and Authentication Failures Fix
             #     login(request, user)
             #     return redirect("/")
             # else:
+            #     request.session["login_attempts"] = login_attempts + 1 # A07 Indentification and Authentication Failures Fix
             #     # A04 Insecure Design Fix
             #     return render(request,
             #                   "notes/login.html",
