@@ -110,9 +110,10 @@ def create_note(request):
     return render(request, "notes/create_note.html")
 
 def note_view(request, noteid):
+    # A01 Broken Access Control
     note = Note.objects.get(pk=noteid)
     return render(request, "notes/note.html", {"note": note})
-    
+
     # A01 Broken Access Control fix
     # try:
     #     note = Note.objects.get(pk=noteid, owner=request.user)
@@ -129,7 +130,8 @@ def seach_notes(request):
 
     if query and request.user.is_authenticated:
         cursor = connection.cursor()
-
+        
+        # A03 Injection
         sql = """SELECT n.id, n.content, u.username 
                 FROM notes_note n 
                 JOIN auth_user u ON n.owner_id = u.id 
